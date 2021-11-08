@@ -7,9 +7,9 @@ img = cv2.imread('images/keyboard.png')
 
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+edges = cv2.Canny(gray, 25, 100, apertureSize=3)
 
-contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 #print(contours)
 
