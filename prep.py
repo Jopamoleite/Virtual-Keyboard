@@ -7,7 +7,7 @@ img = cv2.imread('images/keyboard.png')
 
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-edges = cv2.Canny(gray, 25, 100, apertureSize=3)
+edges = cv2.Canny(gray, 15, 100, apertureSize=3)
 
 contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -26,11 +26,20 @@ for c in contours:
 
     # Draw the rectangles around the keys
     x, y, w, h = cv2.boundingRect(c)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    
-    keyContours.append([x, y, w, h])
 
-keyContours = sorted(list(set(map(tuple, keyContours))), key=lambda k: [k[1], k[0]])
+    overlapping = False
+
+    # Prevents overlapping rectangles for the same key
+    for k in keyContours:
+        if k[0] <= x and k[1] <= y and k[0] + k[2] >= x + w and k[1] + k[3] >= y + h:
+            overlapping = True
+            break
+
+    if not overlapping:
+        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        keyContours.append([x, y, w, h])
+
+keyContours = sorted(list(set(map(tuple, keyContours))), key=lambda k: [k[0], k[1]])
 print(keyContours)
 
 # Draws all countours, including numbers/words/keyboard
