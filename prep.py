@@ -28,7 +28,7 @@ for c in contours:
     x, y, w, h = cv2.boundingRect(c)
     cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
     
-    keyContours.append([x, y])
+    keyContours.append([x, y, w, h])
 
 keyContours = sorted(list(set(map(tuple, keyContours))), key=lambda k: [k[1], k[0]])
 print(keyContours)
