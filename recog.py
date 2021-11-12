@@ -1,4 +1,5 @@
 # Import essential libraries
+from typing import Counter
 import requests
 import argparse
 import cv2
@@ -86,6 +87,7 @@ def blobDetection(binaryImg):
         keepHeight = h > 50 and h < 500
         keepArea = area > 10000 and area < 100000
 
+        c = 0
         # TODO needs refinement
         if all((keepWidth, keepArea)):
             for key in range(0, numLabels):
@@ -102,9 +104,14 @@ def blobDetection(binaryImg):
                 insideArea = areaKey < area
 
                 if all((insideHeight, insideWidth, insideArea)):
+                    c = c+1
+                    #print("[INFO] keeping connected component '{}'".format(key))
+                    #componentMask = (labels == key).astype("uint8") * 255
+                    #mask = cv2.bitwise_or(mask, componentMask)
 
-                    print("[INFO] keeping connected component '{}'".format(key))
-                    componentMask = (labels == key).astype("uint8") * 255
+                if c > 20:
+                    print("[INFO] keeping connected component '{}'".format(i))
+                    componentMask = (labels == i).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
 
     return mask
@@ -115,6 +122,35 @@ def detect_contours(mask, frame):
     # show our output image and connected component mask
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # remove outer countours
+    if(contours):
+        contour = contours[0]
+        for i in contours:
+            if cv2.contourArea(i, True) > cv2.contourArea(contour, True):
+                contour = i
+
+    # probably get the rectabgle
+
+    x = 1000000000
+    y = 1000000000
+    w = 0
+    h = 0
+    # get points
+    for i in contour:
+        if i[0][0] < x:
+            x = i[0][0]
+        if i[0][1] < y:
+            y = i[0][1]
+        if i[0][0] > w:
+            w = i[0][0]
+        if i[0][1] > h:
+            h = i[0][1]
+
+    # marker coords limit
+    markerLimitPoints = [(x, y), (x+w, y), (x+w, y+h), (x, y+h)]
+    print(markerLimitPoints)
+
     cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
 
     cv2.imshow("Connected Component", frame)
