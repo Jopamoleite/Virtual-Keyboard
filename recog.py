@@ -6,6 +6,8 @@ import numpy as np
 import imutils
 from matplotlib import pyplot as plt
 
+from prep import prep
+
 
 def plot_img_histogram(frame):
     imgGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -47,7 +49,7 @@ def binaryThresholding(frame):
 # returns - array with blobs detected
 
 
-def blobDetection(binaryImg, frame):
+def blobDetection(binaryImg):
 
     # construct the argument parser and parse the arguments
     ap = argparse.ArgumentParser()
@@ -74,22 +76,16 @@ def blobDetection(binaryImg, frame):
         area = stats[i, cv2.CC_STAT_AREA]
         (cX, cY) = centroids[i]
 
-        # heuristic to detect the keys
-
-        # if big white rectangle, meanibng the rest of the paper where the marker is
-        # has more than N labels inside means that the only things that interest us are the markers inside the reactangle
-
-        # ensure the width, height, and area are all neither too small
-        # nor too big
+        # heuristic to detect the key:
+        # - if the a bug white rectangle is detected, means we probably found the paper sheet white border containing teh keyboard
+        # - loop again on the numLabels, and check if the coordinates of the labels found are inside the white rectangle and if the area is smaller
+        # - If so, that means a key was found
+        # Store that key info on an array so that it could later be matched with the coordinates stored of the prep program
 
         keepWidth = w > 0 and w < 20000
         keepHeight = h > 50 and h < 500
         keepArea = area > 10000 and area < 100000
 
-    # ensure the connected component we are examining passes all
-        # three test
-    #  construct a mask for the current connected component and
-        # then take the bitwise OR with the mask
         # TODO needs refinement
         if all((keepWidth, keepArea)):
             for key in range(0, numLabels):
@@ -111,6 +107,11 @@ def blobDetection(binaryImg, frame):
                     componentMask = (labels == key).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
 
+    return mask
+
+
+def detect_contours(mask, frame):
+
     # show our output image and connected component mask
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -119,14 +120,17 @@ def blobDetection(binaryImg, frame):
     cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
 
-    return
-
 
 def detect_marker(frame):
-    binaryThresholding(frame)
+    th = binaryThresholding(frame)
+    mask = blobDetection(th)
+    detect_contours(mask, frame)
     return
 
+# MAIN
 
+
+keyCoords = prep()
 # Replace the below URL with your own. Droidcam keep '/video'
 url = "http://192.168.1.24:4747/video"
 
@@ -141,14 +145,9 @@ while(True):
     # by frame
     ret, frame = vid.read()
     lastFrame = frame
-    # Detect keyboard
-    threshFrame = binaryThresholding(frame)
 
-    # Display the resulting frame
-    # cv2.imshow('frame', frame) ##REVERT o see colored image
-   # cv2.imshow('frame', threshFrame)
-    blobDetection(threshFrame, frame)
-    # Histogram hand in the frame
+    # Detect keyboard
+    detect_marker(frame)
 
     # the 'q' button is set as the
     # quitting button you may use any
@@ -156,8 +155,8 @@ while(True):
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-blobDetection(threshFrame)
-# plot_img_histogram(lastFrame)
+# plot_img_histogram(lastrame)
+
 # After the loop release the cap object
 vid.release()
 # Destroy all the windows
