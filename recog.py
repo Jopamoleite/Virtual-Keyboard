@@ -123,6 +123,7 @@ def detect_contours(mask, frame):
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    # TODO handle crash when no contour is found
     # remove outer countours
     if(contours):
         contour = contours[0]
@@ -152,9 +153,21 @@ def detect_contours(mask, frame):
     print(markerLimitPoints)
 
     cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
-
+    # TODO remove this from here
+    frame = drawKeyPressedOnScreen(frame)
     cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
+
+# this should only active during X seconds
+
+
+def drawKeyPressedOnScreen(frame):
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(frame, 'Christmas', (10, 450), font,
+                3, (0, 255, 0), 2, cv2.LINE_AA)
+
+    return frame
 
 
 def detect_marker(frame):
@@ -168,7 +181,7 @@ def detect_marker(frame):
 
 keyCoords = prep()
 # Replace the below URL with your own. Droidcam keep '/video'
-url = "http://192.168.1.24:4747/video"
+url = "http://192.168.1.10:4747/video"
 
 
 # While loop to continuously fetching data from the Url
