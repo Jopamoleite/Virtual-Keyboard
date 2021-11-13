@@ -1,5 +1,7 @@
 # Import essential libraries
 from typing import Counter
+from numpy.core.defchararray import equal
+from numpy.core.fromnumeric import size
 import requests
 import argparse
 import cv2
@@ -111,7 +113,7 @@ def blobDetection(binaryImg):
                     # mask = cv2.bitwise_or(mask, componentMask)
 
                 if c > 20:
-                    #print("[INFO] keeping connected component '{}'".format(i))
+                    # print("[INFO] keeping connected component '{}'".format(i))
                     componentMask = (labels == i).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
 
@@ -172,8 +174,10 @@ def detect_contours(mask, frame):
 
         print(markerPoints)
 
+    # TODO - when teh hand appears in scene the program stops recognizing the marker, we should probably figure a way to store this 4 points during a certain time or ignore the hand
+
     # TODO remove this from here
-    #frame = drawKeyPressedOnScreen(frame)
+    # frame = drawKeyPressedOnScreen(frame)
     cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
 
@@ -197,13 +201,42 @@ def detect_marker(frame):
     detect_contours(mask, frame)
     return
 
+
+def detect_key(keyCoords, marker_points, finger_point):
+    # h, status = cv2.findHomography(keyCoords["BORDER"], marker_points)
+    h, status = cv2.findHomography(
+        np.array(keyCoords["BORDER"]), np.array([(90, 100), (494, 120), (525, 312), (50, 305)]))
+
+    # h, status = cv2.findHomography(
+    #    np.array(keyCoords["BORDER"]), np.array(marker_points))
+
+    print(h)
+
+    (xtemp, ytemp, scale) = np.matmul(h, np.array([410, 421, 1]))
+    #(xtemp, ytemp, scale) = np.matmul(h, np.array(finger_point))
+    x = xtemp/scale
+    y = ytemp/scale
+
+    ret = False
+    # loop thorugh key database and check if the point is inside some
+
+    for key, value in keyCoords.items():
+
+        if key == "BORDER":
+            break
+
+        if (x > value[3][0] and x < value[1][0] and y > value[1][1] and y < value[3][1]):
+            ret = key
+
+    print(ret)
+
+    return key
+
+
 # MAIN
-
-
 keyCoords = prep()
 # Replace the below URL with your own. Droidcam keep '/video'
 url = "http://192.168.1.24:4747/video"
-
 
 # While loop to continuously fetching data from the Url
 vid = cv2.VideoCapture(url)
