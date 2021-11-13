@@ -8,6 +8,7 @@ import imutils
 from matplotlib import pyplot as plt
 from playsound import playsound
 from prep import prep
+import math
 
 
 def plot_img_histogram(frame):
@@ -105,12 +106,12 @@ def blobDetection(binaryImg):
 
                 if all((insideHeight, insideWidth, insideArea)):
                     c = c+1
-                    #print("[INFO] keeping connected component '{}'".format(key))
-                    #componentMask = (labels == key).astype("uint8") * 255
-                    #mask = cv2.bitwise_or(mask, componentMask)
+                    # print("[INFO] keeping connected component '{}'".format(key))
+                    # componentMask = (labels == key).astype("uint8") * 255
+                    # mask = cv2.bitwise_or(mask, componentMask)
 
                 if c > 20:
-                    print("[INFO] keeping connected component '{}'".format(i))
+                    #print("[INFO] keeping connected component '{}'".format(i))
                     componentMask = (labels == i).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
 
@@ -123,38 +124,56 @@ def detect_contours(mask, frame):
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # TODO handle crash when no contour is found
-    # remove outer countours
+   # TODO handle crash when no contour is found
+   # https://www.geeksforgeeks.org/find-co-ordinates-of-contours-using-opencv-python/
+   # remove outer countours
+    rect = []
     if(contours):
-        contour = contours[0]
-        for i in contours:
-            if cv2.contourArea(i, True) > cv2.contourArea(contour, True):
-                contour = i
 
-        # probably get the rectabgle
+        font = cv2.FONT_HERSHEY_COMPLEX
+        for cnt in contours:
 
-        x = 1000000000
-        y = 1000000000
-        w = 0
-        h = 0
-        # get points
-        for i in contour:
-            if i[0][0] < x:
-                x = i[0][0]
-            if i[0][1] < y:
-                y = i[0][1]
-            if i[0][0] > w:
-                w = i[0][0]
-            if i[0][1] > h:
-                h = i[0][1]
+            approx = cv2.approxPolyDP(
+                cnt, 0.009 * cv2.arcLength(cnt, True), True)
 
-        # marker coords limit
-        markerLimitPoints = [(x, y), (x+w, y), (x+w, y+h), (x, y+h)]
-        print(markerLimitPoints)
+            # draws boundary of contours.
+            cv2.drawContours(frame, [approx], 0, (0, 0, 255), 5)
 
-        cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
+            # Used to flatted the array containing
+            # the co-ordinates of the vertices.
+            n = approx.ravel()
+            i = 0
+
+            points = []
+
+            for j in n:
+                if(i % 2 == 0):
+                    x = n[i]
+                    y = n[i + 1]
+
+                    # String containing the co-ordinates.
+                    string = str(x) + " " + str(y)
+
+                    cv2.putText(frame, string, (x, y), font, 0.5, (0, 255, 0))
+
+                    points.append((x, y))
+                i = i + 1
+            rect.append(points)
+
+        # select rectangle with the smallest area
+        markerPoints = rect[0]
+        for i in rect:
+            # calculate rect area
+            currArea = cv2.contourArea(np.array(markerPoints))
+            newArea = cv2.contourArea(np.array(i))
+
+            if newArea < currArea:
+                markerPoints = i
+
+        print(markerPoints)
+
     # TODO remove this from here
-    frame = drawKeyPressedOnScreen(frame)
+    #frame = drawKeyPressedOnScreen(frame)
     cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
 
