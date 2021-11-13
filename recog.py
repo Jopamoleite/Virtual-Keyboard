@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import imutils
 from matplotlib import pyplot as plt
-
+from playsound import playsound
 from prep import prep
 
 
@@ -131,28 +131,28 @@ def detect_contours(mask, frame):
             if cv2.contourArea(i, True) > cv2.contourArea(contour, True):
                 contour = i
 
-    # probably get the rectabgle
+        # probably get the rectabgle
 
-    x = 1000000000
-    y = 1000000000
-    w = 0
-    h = 0
-    # get points
-    for i in contour:
-        if i[0][0] < x:
-            x = i[0][0]
-        if i[0][1] < y:
-            y = i[0][1]
-        if i[0][0] > w:
-            w = i[0][0]
-        if i[0][1] > h:
-            h = i[0][1]
+        x = 1000000000
+        y = 1000000000
+        w = 0
+        h = 0
+        # get points
+        for i in contour:
+            if i[0][0] < x:
+                x = i[0][0]
+            if i[0][1] < y:
+                y = i[0][1]
+            if i[0][0] > w:
+                w = i[0][0]
+            if i[0][1] > h:
+                h = i[0][1]
 
-    # marker coords limit
-    markerLimitPoints = [(x, y), (x+w, y), (x+w, y+h), (x, y+h)]
-    print(markerLimitPoints)
+        # marker coords limit
+        markerLimitPoints = [(x, y), (x+w, y), (x+w, y+h), (x, y+h)]
+        print(markerLimitPoints)
 
-    cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
+        cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
     # TODO remove this from here
     frame = drawKeyPressedOnScreen(frame)
     cv2.imshow("Connected Component", frame)
@@ -162,6 +162,8 @@ def detect_contours(mask, frame):
 
 
 def drawKeyPressedOnScreen(frame):
+
+    # playsound('note.mp3')
 
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(frame, 'Christmas', (10, 450), font,
@@ -181,7 +183,7 @@ def detect_marker(frame):
 
 keyCoords = prep()
 # Replace the below URL with your own. Droidcam keep '/video'
-url = "http://192.168.1.10:4747/video"
+url = "http://192.168.1.24:4747/video"
 
 
 # While loop to continuously fetching data from the Url
