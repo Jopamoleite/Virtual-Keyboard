@@ -8,8 +8,10 @@ sampler_x1, sampler_x2, sampler_y1, sampler_y2 = 0, 0, 0, 0
 
 
 def sample_hand_pixels(frame):
-    region_of_interest = np.zeros([hand_sampler_size, hand_sampler_size, 3], dtype=frame.dtype)
-    region_of_interest[0:hand_sampler_size, 0:hand_sampler_size] = frame[sampler_y1:sampler_y2, sampler_x1:sampler_x2]
+    region_of_interest = np.zeros(
+        [hand_sampler_size, hand_sampler_size, 3], dtype=frame.dtype)
+    region_of_interest[0:hand_sampler_size,
+                       0:hand_sampler_size] = frame[sampler_y1:sampler_y2, sampler_x1:sampler_x2]
 
     global hand_pixels, hand_hist
     if hand_pixels is None:
@@ -21,13 +23,15 @@ def sample_hand_pixels(frame):
 
 
 def calculate_hand_histogram(pixels):
-    aux_hist = cv2.calcHist([pixels], [0, 1], None, [180, 256], [0, 180, 0, 256])
+    aux_hist = cv2.calcHist([pixels], [0, 1], None, [
+                            180, 256], [0, 180, 0, 256])
     return cv2.normalize(aux_hist, aux_hist, 0, 255, cv2.NORM_MINMAX)
 
 
 def calculate_hand_mask(frame):
     global hand_hist
-    back_project = cv2.calcBackProject([frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
+    back_project = cv2.calcBackProject(
+        [frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
 
     disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     cv2.filter2D(back_project, -1, disc, back_project)
@@ -96,7 +100,7 @@ def get_contour_tip(frame, contour):
     return farthest_point
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("http://192.168.1.24:4747/video")
 
 while(True):
     ret, frame = cap.read()
@@ -104,8 +108,10 @@ while(True):
 
     if hand_sampler_size == 0:
         hand_sampler_size = int(min(rows, cols) / 20)
-        sampler_x1, sampler_y1 = int((cols - hand_sampler_size) / 2), int((rows - hand_sampler_size) / 2)
-        sampler_x2, sampler_y2 = sampler_x1 + hand_sampler_size, sampler_y1 + hand_sampler_size
+        sampler_x1, sampler_y1 = int(
+            (cols - hand_sampler_size) / 2), int((rows - hand_sampler_size) / 2)
+        sampler_x2, sampler_y2 = sampler_x1 + \
+            hand_sampler_size, sampler_y1 + hand_sampler_size
 
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -122,6 +128,7 @@ while(True):
         point_1 = None
         point_2 = None
 
+        contours = list(contours)
         if contours:
             max_contour = max(contours, key=cv2.contourArea)
             contours.pop(contours.index(max_contour))
