@@ -36,7 +36,7 @@ def calculate_hand_mask(frame):
     disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     cv2.filter2D(back_project, -1, disc, back_project)
 
-    _, mask = cv2.threshold(back_project, 30, 255, cv2.THRESH_BINARY)
+    _, mask = cv2.threshold(back_project, 30, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     blured = cv2.blur(mask, (2, 2))
     return blured
 
@@ -128,18 +128,31 @@ while(True):
         point_1 = None
         point_2 = None
 
-        contours = list(contours)
-        if contours:
-            max_contour = max(contours, key=cv2.contourArea)
-            contours.pop(contours.index(max_contour))
+        contour_1 = None
+        contour_2 = None
 
-            if max_contour is not None:
-                point_1 = get_contour_tip(frame, max_contour)
+        area_1 = 0
+        area_2 = 0
 
-        if contours:
-            max_contour_2 = max(contours, key=cv2.contourArea)
-            if max_contour_2 is not None:
-                point_2 = get_contour_tip(frame, max_contour_2)
+        for contour in contours:
+            aux_area = cv2.contourArea(contour)
+
+            if contour_1 is None or aux_area > area_1:
+                contour_2 = contour_1
+                contour_1 = contour
+                area_2 = area_1
+                area_1 = aux_area
+                continue
+
+            if contour_2 is None or aux_area > area_2:
+                contour_2 = contour
+                area_2 = aux_area
+
+        if contour_1 is not None:
+            point_1 = get_contour_tip(frame, contour_1)
+
+        if contour_2 is not None:
+            point_2 = get_contour_tip(frame, contour_2)
 
         if point_1 is not None:
             cv2.circle(frame, point_1, 5, [0, 0, 255], -1)
