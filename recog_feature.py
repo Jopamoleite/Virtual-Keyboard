@@ -9,6 +9,7 @@ MIN_FRAMES_REQUIRED = 10
 keyCoords = prep()
 keyRealCoords = {}
 frameCount = 0
+frameCount2 = 0
 
 # Initiate SIFT detector
 
@@ -40,8 +41,9 @@ def get_key_being_pressed(x, y, frame, frameCount):
 
         if (x > value.item(6) and x < value.item(2) and y > value.item(3) and y < value.item(7)):
             ret = key
+            break
 
-    img1 = cv.circle(frame, (200, 200), 2, (0, 0, 255),
+    img1 = cv.circle(frame, (x, y), 2, (0, 0, 255),
                      2)  # TODO remove this
     if ret != False:
         frameCount = frameCount + 1
@@ -108,7 +110,7 @@ def feature_detection(frame):
 
 # MAIN
 # Replace the below URL with your own. Droidcam keep '/video'
-url = "http://192.168.1.24:4747/video"
+url = "http://192.168.1.242:4747/video"
 vid = cv.VideoCapture(url)
 # detect_key(keyCoords, 1, 1)
 
@@ -125,6 +127,7 @@ while(True):
     # quitting button you may use any
     # desired button of your choice
     frame, frameCount = get_key_being_pressed(200, 200, frame, frameCount)
+    frame, frameCount2 = get_key_being_pressed(100, 300, frame, frameCount2)
     cv.imshow("features", frame)
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
