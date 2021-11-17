@@ -36,7 +36,8 @@ def calculate_hand_mask(frame):
     disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     cv2.filter2D(back_project, -1, disc, back_project)
 
-    _, mask = cv2.threshold(back_project, 30, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, mask = cv2.threshold(back_project, 30, 255,
+                            cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     blured = cv2.blur(mask, (2, 2))
     return blured
 
@@ -100,7 +101,7 @@ def get_contour_tip(frame, contour):
     return farthest_point
 
 
-cap = cv2.VideoCapture("http://192.168.1.24:4747/video")
+cap = cv2.VideoCapture(0)
 
 while(True):
     ret, frame = cap.read()

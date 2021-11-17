@@ -3,15 +3,22 @@ from prep import prep
 import cv2 as cv
 from matplotlib import pyplot as plt
 
+keyCoords = prep()
+keyRealCoords = {}
+
+
 # Initiate SIFT detector
 
 img1 = cv.imread('images/keyboard.png', 0)  # queryImage
 
 sift = cv.SIFT_create()
-kp1, des1 = sift.detectAndCompute(img1, None)
+fast = cv.FastFeatureDetector_create()
+#kp1, des1 = sift.detectAndCompute(img1, None)
+kp1 = fast.detect(img1, None)
+des1 = sift.compute(img1, kp1)[1]
 
-keyCoords = prep()
-keyRealCoords = {}
+
+# surf = cv.surf(400)
 
 
 def get_key_being_pressed(x, y):
@@ -36,12 +43,14 @@ def feature_detection(frame):
     img2 = frame
 
     # find the keypoints and descriptors with SIFT
-    kp2, des2 = sift.detectAndCompute(img2, None)
+    #kp2, des2 = sift.detectAndCompute(img2, None)
+    kp2 = fast.detect(img2, None)
+    des2 = sift.compute(img2, kp2)[1]
+    # kp2, des2 = surf.detectAndCompute(img2, None)
 
     FLANN_INDEX_KDTREE = 1
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)
-
     flann = cv.FlannBasedMatcher(index_params, search_params)
 
     matches = flann.knnMatch(des1, des2, k=2)
@@ -78,7 +87,7 @@ def feature_detection(frame):
 # MAIN
 # Replace the below URL with your own. Droidcam keep '/video'
 url = "http://192.168.1.24:4747/video"
-vid = cv.VideoCapture(url)
+vid = cv.VideoCapture(0)
 # detect_key(keyCoords, 1, 1)
 
 while(True):
