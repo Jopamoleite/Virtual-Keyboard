@@ -114,7 +114,6 @@ vid = cv.VideoCapture(url)
 
 
 while(True):
-
     # Capture the video frame
     # by frame
     ret, frame = vid.read()

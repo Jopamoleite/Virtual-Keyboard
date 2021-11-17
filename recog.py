@@ -12,6 +12,12 @@ from playsound import playsound
 from prep import prep
 import math
 
+MIN_FRAMES_REQUIRED = 10
+
+keyCoords = prep()
+keyRealCoords = {}
+frameCount = 0
+
 
 def plot_img_histogram(frame):
     imgGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -45,6 +51,7 @@ def binaryThresholding(frame):
     blur = cv2.GaussianBlur(imgGrey, (5, 5), 0)
     ret3, th2 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     # plot img histogram to analyse the thrshold to use
+
     return th2
 
 # binaryImg - black and white image to find blobs
@@ -61,8 +68,6 @@ def blobDetection(binaryImg):
                     help="connectivity for connected component analysis")
     args = vars(ap.parse_args())
 
-    # since the algorithm is detecting only white blobs
-    # reverse = cv2.bitwise_not(binaryImg)
     output = cv2.connectedComponentsWithStats(
         binaryImg, args["connectivity"], cv2.CV_32S)
     (numLabels, labels, stats, centroids) = output
@@ -93,6 +98,7 @@ def blobDetection(binaryImg):
         c = 0
         # TODO needs refinement
         if all((keepWidth, keepArea)):
+            # check if there are small rectangles inside a bigger one
             for key in range(0, numLabels):
 
                 xKey = stats[key, cv2.CC_STAT_LEFT]
@@ -108,12 +114,8 @@ def blobDetection(binaryImg):
 
                 if all((insideHeight, insideWidth, insideArea)):
                     c = c+1
-                    # print("[INFO] keeping connected component '{}'".format(key))
-                    # componentMask = (labels == key).astype("uint8") * 255
-                    # mask = cv2.bitwise_or(mask, componentMask)
 
                 if c > 20:
-                    # print("[INFO] keeping connected component '{}'".format(i))
                     componentMask = (labels == i).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
 
@@ -121,7 +123,7 @@ def blobDetection(binaryImg):
 
 
 def detect_contours(mask, frame):
-
+    markerPoints = []
     # show our output image and connected component mask
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -172,69 +174,71 @@ def detect_contours(mask, frame):
             if newArea < currArea:
                 markerPoints = i
 
-        print(markerPoints)
-
-    # TODO - when teh hand appears in scene the program stops recognizing the marker, we should probably figure a way to store this 4 points during a certain time or ignore the hand
-
-    # TODO remove this from here
-    # frame = drawKeyPressedOnScreen(frame)
     cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
-
+    return markerPoints
 # this should only active during X seconds
 
 
-def drawKeyPressedOnScreen(frame):
-
-    # playsound('note.mp3')
-
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(frame, 'Christmas', (10, 450), font,
-                3, (0, 255, 0), 2, cv2.LINE_AA)
-
-    return frame
-
-
 def detect_marker(frame):
+
+    markerPoints = []
+
     th = binaryThresholding(frame)
     mask = blobDetection(th)
-    detect_contours(mask, frame)
-    return
+    cv2.imshow("blob", mask)
+    markerPoints = detect_contours(mask, frame)
+    return markerPoints
 
 
-def detect_key(keyCoords, marker_points, finger_point):
-    # h, status = cv2.findHomography(keyCoords["BORDER"], marker_points)
-    h, status = cv2.findHomography(
-        np.array(keyCoords["BORDER"]), np.array([(90, 100), (494, 120), (525, 312), (50, 305)]))
+def calculate_homography(keyCoords, markerPoints):
 
-    # h, status = cv2.findHomography(
-    #    np.array(keyCoords["BORDER"]), np.array(marker_points))
-
-    print(h)
-
-    (xtemp, ytemp, scale) = np.matmul(h, np.array([410, 421, 1]))
-    #(xtemp, ytemp, scale) = np.matmul(h, np.array(finger_point))
-    x = xtemp/scale
-    y = ytemp/scale
-
-    ret = False
-    # loop thorugh key database and check if the point is inside some
+    if markerPoints == None:
+        return
+    M, mask = cv2.findHomography(
+        np.array(keyCoords["BORDER"]), np.array(markerPoints), cv2.RANSAC, 5.0)
 
     for key, value in keyCoords.items():
+        pts = np.float32(np.array(value)).reshape(-1, 1, 2)
+        dst = cv2.perspectiveTransform(pts, M)
+        keyRealCoords[key] = np.int32(dst)
 
+
+def make_sound():
+    playsound('note.mp3', block=False)
+
+
+def get_key_being_pressed(x, y, frame, frameCount):
+
+    ret = False
+    for key, value in keyRealCoords.items():
+
+        # print(value)
         if key == "BORDER":
             break
 
-        if (x > value[3][0] and x < value[1][0] and y > value[1][1] and y < value[3][1]):
+        if (x > value.item(6) and x < value.item(2) and y > value.item(3) and y < value.item(7)):
             ret = key
+    img1 = cv2.circle(frame, (200, 200), 2, (0, 0, 255), 2)  # TODO remove this
 
-    print(ret)
+    if ret != False:
+        frameCount = frameCount + 1
+        if frameCount == MIN_FRAMES_REQUIRED:
+            make_sound()
+        if frameCount > MIN_FRAMES_REQUIRED:
+            img2 = cv2.polylines(
+                img1, [keyRealCoords[ret]], True, 255, 3, cv2.LINE_AA)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(frame, ret, (0, 50), font,
+                        2, (0, 255, 0), 2, cv2.LINE_AA)
+            return img2, frameCount
+        return frame, frameCount
 
-    return key
+    frameCount = 0
+    return frame, frameCount
 
 
 # MAIN
-keyCoords = prep()
 # Replace the below URL with your own. Droidcam keep '/video'
 url = "http://192.168.1.24:4747/video"
 
@@ -250,11 +254,16 @@ while(True):
     lastFrame = frame
 
     # Detect keyboard
-    detect_marker(frame)
+    markerPoints = detect_marker(frame)
 
+    if len(markerPoints) == 4:
+        calculate_homography(keyCoords, markerPoints)
+
+    frame, frameCount = get_key_being_pressed(200, 200, frame, frameCount)
     # the 'q' button is set as the
     # quitting button you may use any
     # desired button of your choice
+    cv2.imshow("AR Keyboard", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
