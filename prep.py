@@ -6,13 +6,13 @@ from collections import OrderedDict
 keyCaps = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "BACKSPACE",
            "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "ENTER",
            "A", "S", "D", "F", "G", "H", "J", "K", "L",
-           "Z", "X", "C", "V", "B", "N", "M", ",", ".",
+           "SHIFT", "Z", "X", "C", "V", "B", "N", "M", ",", ".",
            "SPACE", "BORDER"]
 
 
 def prep():
 
-    img = cv2.imread('images/keyboard.png')
+    img = cv2.imread('images/keyboardShift.png')
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
