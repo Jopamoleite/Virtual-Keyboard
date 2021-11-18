@@ -1,5 +1,4 @@
 import numpy as np
-from prep import prep
 import cv2 as cv
 from matplotlib import pyplot as plt
 from playsound import playsound
@@ -13,7 +12,7 @@ frameCountDetector = 0
 
 # Initiate SIFT detector
 
-img1 = cv.imread('images/keyboard.png', 0)  # queryImage
+img1 = cv.imread('images/preppedKeyboard.png', 0)  # queryImage
 sift = cv.SIFT_create()
 orb = cv.ORB_create()
 fast = cv.FastFeatureDetector_create()
@@ -34,7 +33,6 @@ def get_key_being_pressed(x, y, frame, frameCount, keyRealCoords):
 
     ret = False
     for key, value in keyRealCoords.items():
-
         # print(value)
         if key == "BORDER":
             break

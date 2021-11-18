@@ -3,18 +3,20 @@ from typing import Counter
 from numpy.core.defchararray import equal
 from numpy.core.fromnumeric import size
 import requests
+import pickle
 import argparse
 import cv2
 import numpy as np
 import imutils
 from matplotlib import pyplot as plt
 from playsound import playsound
-from prep import prep
 import math
 
 MIN_FRAMES_REQUIRED = 10
 
-keyCoords = prep()
+with open('prep', 'rb') as prep_file:
+    keyCoords = pickle.load(prep_file)
+    
 keyRealCoords = {}
 frameCount = 0
 

@@ -1,13 +1,13 @@
 #!/usr/bin/python
 import cv2
 import numpy as np
-from prep import prep
+import pickle
 #from hand_tracker_final import sample_hand_pixels, calculate_hand_histogram, calculate_hand_mask, calculate_mask_contours, find_farthest_defect, get_contour_tip
 from recog_markerless_final import feature_detection, get_key_being_pressed
 from recog_markerBased_final import detect_marker, calculate_homography
 
-URL = "http://192.168.1.24:4747/video"
-MARKER_TYPE = 0  # 0 - Marker Based / 1 - Markerless
+URL = "http://192.168.1.242:4747/video"
+MARKER_TYPE = 1  # 0 - Marker Based / 1 - Markerless
 
 hand_pixels = None
 hand_hist = None
@@ -26,10 +26,10 @@ fingerY2 = 300
 
 vid = cv2.VideoCapture(URL)
 # first run preparation program calibrating the hand color
-database = prep()
-
+with open('prep', 'rb') as prep_file:
+    database = pickle.load(prep_file)
+ 
 # hand prep
-
 while(True):
     # TODO function to calibrate the handpoints
     break
@@ -53,7 +53,7 @@ while(True):
 
     # detect finger
     # TODO - funtion that detects fingerX's and fingerY's
-    if keyCoords != {}:
+    if keyCoords != {} and keyCoords is not None:
         frame, frameCount = get_key_being_pressed(
             fingerX1, fingerY1, frame, frameCount, keyCoords)
         frame, frameCount2 = get_key_being_pressed(
