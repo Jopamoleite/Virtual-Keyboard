@@ -6,10 +6,10 @@ from playsound import playsound
 
 MIN_FRAMES_REQUIRED = 10
 # GLOBAL VARS
-keyCoords = prep()
 keyRealCoords = {}
 frameCount = 0
 frameCount2 = 0
+frameCountDetector = 0
 
 # Initiate SIFT detector
 
@@ -30,7 +30,7 @@ def make_sound():
     playsound('note.mp3', block=False)
 
 
-def get_key_being_pressed(x, y, frame, frameCount):
+def get_key_being_pressed(x, y, frame, frameCount, keyRealCoords):
 
     ret = False
     for key, value in keyRealCoords.items():
@@ -42,7 +42,6 @@ def get_key_being_pressed(x, y, frame, frameCount):
         if (x > value.item(6) and x < value.item(2) and y > value.item(3) and y < value.item(7)):
             ret = key
             break
-
     img1 = cv.circle(frame, (x, y), 2, (0, 0, 255),
                      2)  # TODO remove this
     if ret != False:
@@ -62,7 +61,7 @@ def get_key_being_pressed(x, y, frame, frameCount):
     return frame, frameCount
 
 
-def feature_detection(frame):
+def feature_detection(frame, keyCoords, oldKeyRealCoords):
 
     MIN_MATCH_COUNT = 10
 
@@ -105,34 +104,6 @@ def feature_detection(frame):
             # True, 255, 3, cv.LINE_AA)
             keyRealCoords[key] = np.int32(dst)
 
-    # img2 = cv.drawKeypoints(img2, kp2, None, color=(0, 255, 0), flags=0)
+        return keyRealCoords
 
-
-# MAIN
-# Replace the below URL with your own. Droidcam keep '/video'
-url = "http://192.168.1.242:4747/video"
-vid = cv.VideoCapture(url)
-# detect_key(keyCoords, 1, 1)
-
-
-while(True):
-    # Capture the video frame
-    # by frame
-    ret, frame = vid.read()
-    # b = cv.resize(frame, (1280, 720), fx=0, fy=0, interpolation=cv.INTER_CUBIC)
-    feature_detection(frame)
-    # cv.imshow("features", frame)
-    # Detect keyboard
-    # the 'q' button is set as the
-    # quitting button you may use any
-    # desired button of your choice
-    frame, frameCount = get_key_being_pressed(200, 200, frame, frameCount)
-    frame, frameCount2 = get_key_being_pressed(100, 300, frame, frameCount2)
-    cv.imshow("features", frame)
-    if cv.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# After the loop release the cap object
-vid.release()
-# Destroy all the windows
-cv.destroyAllWindows()
+    return oldKeyRealCoords
