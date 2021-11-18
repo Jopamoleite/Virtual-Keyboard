@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 from prep import prep
-# from hand_tracker import sample_hand_pixels, calculate_hand_histogram, calculate_hand_mask, calculate_mask_contours, find_farthest_defect, get_contour_tip
+#from hand_tracker_final import sample_hand_pixels, calculate_hand_histogram, calculate_hand_mask, calculate_mask_contours, find_farthest_defect, get_contour_tip
 from recog_markerless_final import feature_detection, get_key_being_pressed
 from recog_markerBased_final import detect_marker, calculate_homography
 
@@ -19,15 +19,22 @@ keyCoords = {}
 frameCount = 0
 frameCount2 = 0
 frameCountDetector = 0
+fingerX1 = 200
+fingerY1 = 200
+fingerX2 = 100
+fingerY2 = 300
 
 vid = cv2.VideoCapture(URL)
 # first run preparation program calibrating the hand color
 database = prep()
 
+# hand prep
+
+while(True):
+    # TODO function to calibrate the handpoints
+    break
 
 # keyboard detection
-
-
 while(True):
 
     ret, frame = vid.read()
@@ -45,12 +52,12 @@ while(True):
             frameCountDetector = 0
 
     # detect finger
-
+    # TODO - funtion that detects fingerX's and fingerY's
     if keyCoords != {}:
         frame, frameCount = get_key_being_pressed(
-            200, 200, frame, frameCount, keyCoords)
+            fingerX1, fingerY1, frame, frameCount, keyCoords)
         frame, frameCount2 = get_key_being_pressed(
-            100, 300, frame, frameCount2, keyCoords)
+            fingerX2, fingerY2, frame, frameCount2, keyCoords)
 
     cv2.imshow("features", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):

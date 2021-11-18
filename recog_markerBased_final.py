@@ -174,7 +174,6 @@ def detect_contours(mask, frame):
             if newArea < currArea:
                 markerPoints = i
     frame = cv2.circle(frame, (200, 200), 2, (0, 0, 255), 2)
-    cv2.imshow("Connected Component", frame)
     # cv2.waitKey(0)
     return markerPoints
 # this should only active during X seconds
