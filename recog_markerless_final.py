@@ -49,14 +49,17 @@ def get_key_being_pressed(x, y, frame, frameCount, keyRealCoords):
         if frameCount > MIN_FRAMES_REQUIRED:
             img2 = cv.polylines(
                 img1, [keyRealCoords[ret]], True, 255, 3, cv.LINE_AA)
-            font = cv.FONT_HERSHEY_SIMPLEX
-            cv.putText(frame, ret, (0, 50), font,
-                       2, (0, 255, 0), 2, cv.LINE_AA)
-            return img2, frameCount
-        return frame, frameCount
+            return img2, frameCount, ret
+        return frame, frameCount, ""
 
     frameCount = 0
-    return frame, frameCount
+    return frame, frameCount, ""
+
+def draw_key(x, y, frame, key):
+    font = cv.FONT_HERSHEY_SIMPLEX
+    cv.putText(frame, key, (x, y + 50), font,
+                2, (0, 255, 0), 2, cv.LINE_AA)
+
 
 
 def feature_detection(frame, keyCoords, oldKeyRealCoords):
@@ -75,7 +78,10 @@ def feature_detection(frame, keyCoords, oldKeyRealCoords):
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)   # or pass empty dictionary
     flann = cv.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(des1, des2, k=2)
+    try:
+        matches = flann.knnMatch(des1, des2, k=2)
+    except:
+        return oldKeyRealCoords
     # matches = bf.knnMatch(des1, des2, k=2)
     good = []
 
