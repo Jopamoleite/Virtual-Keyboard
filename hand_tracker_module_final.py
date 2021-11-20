@@ -269,5 +269,3 @@ def test():
     hand_sampler(cap)
 
     cap.release()
-
-test()

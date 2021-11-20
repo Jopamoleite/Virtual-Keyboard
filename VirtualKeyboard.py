@@ -5,6 +5,7 @@ import pickle
 #from hand_tracker_final import sample_hand_pixels, calculate_hand_histogram, calculate_hand_mask, calculate_mask_contours, find_farthest_defect, get_contour_tip
 from recog_markerless_final import feature_detection, get_key_being_pressed, draw_key
 from recog_markerBased_final import detect_marker, calculate_homography
+from hand_tracker_module_final import hand_sampler, calculate_hand_contours, find_fingertips
 
 URL = "http://192.168.1.242:4747/video"
 MARKER_TYPE = 1  # 0 - Marker Based / 1 - Markerless
@@ -30,9 +31,7 @@ with open('prep', 'rb') as prep_file:
     database = pickle.load(prep_file)
  
 # hand prep
-while(True):
-    # TODO function to calibrate the handpoints
-    break
+hand_hist = hand_sampler(vid)
 
 # keyboard detection
 while(True):
@@ -52,7 +51,16 @@ while(True):
             frameCountDetector = 0
 
     # detect finger
-    # TODO - funtion that detects fingerX's and fingerY's
+    hand_contours = calculate_hand_contours(frame, hand_hist)
+    finger1, finger2 = find_fingertips(frame, hand_contours)
+
+    if finger1 is not None:
+        fingerX1 = finger1[0]
+        fingerY1 = finger1[1]
+    if finger2 is not None:
+        fingerX2 = finger2[0]
+        fingerY2 = finger2[1]
+
     if keyCoords != {} and keyCoords is not None:
         frame, frameCount, key = get_key_being_pressed(
             fingerX1, fingerY1, frame, frameCount, keyCoords)
