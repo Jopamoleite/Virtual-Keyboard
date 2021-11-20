@@ -1,17 +1,13 @@
 import cv2
 import numpy as np
 
+hand_sampler_size, sampler_x1, sampler_x2, sampler_y1, sampler_y2 = 0, 0, 0, 0, 0
 
-sampler_x1, sampler_x2, sampler_y1, sampler_y2 = 0, 0, 0, 0
-
-
-def sample_hand_pixels(frame, hand_sampler_size):
+def sample_hand_pixels(frame):
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     #hsv_frame[:,:,0] = cv2.equalizeHist(hsv_frame[:,:,0])
     #hsv_frame[:,:,1] = cv2.equalizeHist(hsv_frame[:,:,1])
     #hsv_frame[:,:,2] = cv2.equalizeHist(hsv_frame[:,:,2])
-
-    global sampler_x1, sampler_x2, sampler_y1, sampler_y2
 
     region_of_interest = np.zeros(
         [hand_sampler_size, hand_sampler_size, 3], dtype=hsv_frame.dtype)
@@ -31,33 +27,28 @@ def calculate_hand_mask(frame, hand_hist):
     back_project = cv2.calcBackProject(
         [frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
 
-    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cv2.filter2D(back_project, -1, disc, back_project)
     cv2.imshow('back', back_project)
 
-    blured = cv2.blur(back_project, (2, 2))
+    _, mask = cv2.threshold(back_project, 50, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    cv2.imshow('mask', mask)
 
-    #erode_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    #eroded = cv2.erode(blured, erode_kernel, iterations=2)
-
-    #dilate_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-    #dilated = cv2.dilate(blured, dilate_kernel, iterations=1)
+    blured = cv2.blur(mask, (2, 2))
 
     close_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     closed = cv2.morphologyEx(blured, cv2.MORPH_CLOSE, close_kernel)
 
-    erode_kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    eroded2 = cv2.erode(closed, erode_kernel2, iterations=1)
+    dilate_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+    dilated = cv2.dilate(closed, dilate_kernel, iterations=1)
 
-    #cv2.imshow('closed', closed)
-    #cv2.imshow('dilated', dilated)
-    #cv2.imshow('eroded', eroded)
-    #cv2.imshow('eroded2', eroded2)
+    erode_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    eroded = cv2.erode(blured, erode_kernel, iterations=1)
 
-    _, mask = cv2.threshold(eroded2, 20, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    cv2.imshow('mask', mask)
-
-    return mask
+    cv2.imshow('closed', closed)
+    cv2.imshow('dilated', dilated)
+    cv2.imshow('eroded', eroded)
+    return eroded
 
 
 def calculate_mask_contours(mask):
@@ -105,10 +96,7 @@ def find_farthest_defect(defects, contour, center):
 
 
 def get_contour_tip(frame, contour):
-    try:
-        cx, cy = calculate_center(contour)
-    except ZeroDivisionError:
-        return None
+    cx, cy = calculate_center(contour)
 
     cv2.circle(frame, (cx, cy), 4, (255, 255, 255), -1)
     cv2.circle(frame, (cx, cy), 2, (0, 0, 0), -1)
@@ -210,52 +198,39 @@ def get_hand_pixels(frame, sampler_mask):
 
 
 def hand_sampler(cap):
+    sampler_mask = None
     hand_pixels = None
+    hand_mask = None
     hand_hist = None
-    hand_sampler_size = 0
-    global sampler_x1, sampler_x2, sampler_y1, sampler_y2
+
+    step = 0
 
     while(True):
         _, frame = cap.read()
-        rows, cols, _ = frame.shape
 
-        key = cv2.waitKey(1)
-        if key & 0xFF == ord('q'):
-            break
-        if key & 0xFF == ord('s'):
-            region_of_interest = sample_hand_pixels(frame, hand_sampler_size)
-            if hand_pixels is None:
-                hand_pixels = region_of_interest
-            else:
-                hand_pixels = np.concatenate((hand_pixels, region_of_interest), axis=1)
-            hand_hist = calculate_hand_histogram(hand_pixels)
-        if key & 0xFF == ord('c'):
-            hand_pixels = None
-            hand_hist = None
+        if step == 3:
+            hand_hsv = cv2.cvtColor(hand_pixels, cv2.COLOR_BGR2HSV)
+            hand_hist = cv2.calcHist([hand_hsv], [0, 1], hand_mask, [180, 256], [0, 180, 0, 256])
 
-        if hand_sampler_size == 0:
-            hand_sampler_size = int(min(rows, cols) / 20)
-            sampler_x1, sampler_y1 = int(
-                (cols - hand_sampler_size) / 2), int((rows - hand_sampler_size) / 2)
-            sampler_x2, sampler_y2 = sampler_x1 + \
-                hand_sampler_size, sampler_y1 + hand_sampler_size
-
-
-        if hand_hist is not None:
-            cv2.imshow('handpix', cv2.cvtColor(hand_pixels, cv2.COLOR_HSV2BGR))
             contours = calculate_hand_contours(frame, hand_hist)
             cv2.drawContours(frame, contours, -1, (255, 255, 0), 3)
 
             point_1, point_2 = find_fingertips(frame, contours)
 
-        cv2.rectangle(
-            frame,
-            (sampler_x1, sampler_y1),
-            (sampler_x2, sampler_y2),
-            (0, 0, 255),
-            1
-        )
         cv2.imshow('frame', frame)
+
+        if step == 1:
+            sampler_mask = calculate_sampler_mask(frame)
+        if step == 2:
+            hand_pixels, hand_mask = get_hand_pixels(frame, sampler_mask)
+
+        key = cv2.waitKey(1)
+        if key & 0xFF == ord('q') or step > 3:
+            break
+        if key & 0xFF == ord('s') and step < 4:
+            step += 1
+        if key & 0xFF == ord('c') and step > 0:
+            step -= 1
 
     # Destroy all the windows
     cv2.destroyAllWindows()
