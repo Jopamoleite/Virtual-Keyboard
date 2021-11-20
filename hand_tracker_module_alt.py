@@ -31,7 +31,7 @@ def calculate_hand_mask(frame, hand_hist):
     cv2.filter2D(back_project, -1, disc, back_project)
     cv2.imshow('back', back_project)
 
-    _, mask = cv2.threshold(back_project, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, mask = cv2.threshold(back_project, 50, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     cv2.imshow('mask', mask)
 
     blured = cv2.blur(mask, (2, 2))
