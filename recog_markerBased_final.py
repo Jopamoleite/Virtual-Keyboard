@@ -16,9 +16,11 @@ MIN_FRAMES_REQUIRED = 10
 
 with open('prep', 'rb') as prep_file:
     keyCoords = pickle.load(prep_file)
-    
+
 keyRealCoords = {}
 frameCount = 0
+
+# function to plot image histogram, was utilitary to choose binarization threshold value
 
 
 def plot_img_histogram(frame):
@@ -33,33 +35,15 @@ def plot_img_histogram(frame):
     plt.show()
     return
 
-# thresh 127
-# maxval 255
-
-# TODO: use dynamic thresholding
-
 
 def binaryThresholding(frame):
     imgGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # This is not sufcient as we would need to make hard math reading the images histogram to adapt to light
-    # ret, th1 = cv2.threshold(imgGrey, 127, 255, cv2.THRESH_BINARY)
-
-    # this method works to on all ilumination conditions, but does not conserve blacks it works fine as a line detector
-    th1 = cv2.adaptiveThreshold(
-        imgGrey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 10)
-
-    # OTSU method works on bad and good light contions but preserves the blacks from the marker, making it easit for the detection of the keys
+    # OTSU method works on bad and good light contions but preserves the blacks from the marker, making it easier for the detection of the keys
     blur = cv2.GaussianBlur(imgGrey, (5, 5), 0)
     ret3, th2 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    # plot img histogram to analyse the thrshold to use
 
     return th2
-
-# binaryImg - black and white image to find blobs
-# connectivity - connectivity can be 4 or 8
-# objectColor - image of the objects can be 0 if black or 255 if white
-# returns - array with blobs detected
 
 
 def blobDetection(binaryImg):
@@ -88,17 +72,18 @@ def blobDetection(binaryImg):
         (cX, cY) = centroids[i]
 
         # heuristic to detect the key:
-        # - if the a bug white rectangle is detected, means we probably found the paper sheet white border containing teh keyboard
+        # - if the a big white rectangle is detected, means we probably found the paper sheet white border containing the keyboard
         # - loop again on the numLabels, and check if the coordinates of the labels found are inside the white rectangle and if the area is smaller
         # - If so, that means a key was found
-        # Store that key info on an array so that it could later be matched with the coordinates stored of the prep program
+        # Store that key into on an array so that it could later be matched with the coordinates stored of the prep program
 
         keepWidth = w > 0 and w < 20000
         keepHeight = h > 50 and h < 500
         keepArea = area > 10000 and area < 100000
 
+        # used to count keys, small squares
         c = 0
-        # TODO needs refinement
+
         if all((keepWidth, keepArea)):
             # check if there are small rectangles inside a bigger one
             for key in range(0, numLabels):
@@ -114,9 +99,11 @@ def blobDetection(binaryImg):
                 insideHeight = yKey >= y and yKey <= y + h
                 insideArea = areaKey < area
 
+                # if inside the bigger square increment
                 if all((insideHeight, insideWidth, insideArea)):
                     c = c+1
 
+                # if the square has more than 20 squares inside it is a good candidate to be the marker border
                 if c > 20:
                     componentMask = (labels == i).astype("uint8") * 255
                     mask = cv2.bitwise_or(mask, componentMask)
@@ -130,8 +117,6 @@ def detect_contours(mask, frame):
     contours, hierarchy = cv2.findContours(
         mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-   # TODO handle crash when no contour is found
-   # https://www.geeksforgeeks.org/find-co-ordinates-of-contours-using-opencv-python/
    # remove outer countours
     rect = []
     if(contours):
@@ -176,9 +161,7 @@ def detect_contours(mask, frame):
             if newArea < currArea:
                 markerPoints = i
     frame = cv2.circle(frame, (200, 200), 2, (0, 0, 255), 2)
-    # cv2.waitKey(0)
     return markerPoints
-# this should only active during X seconds
 
 
 def detect_marker(frame):
@@ -193,9 +176,12 @@ def calculate_homography(keyCoords, markerPoints):
 
     if markerPoints == None:
         return
+
+    # get homography matrix
     M, mask = cv2.findHomography(
         np.array(keyCoords["BORDER"]), np.array(markerPoints), cv2.RANSAC, 5.0)
 
+    # for each key calculate each coordinates on the image using the homography matrix
     for key, value in keyCoords.items():
         pts = np.float32(np.array(value)).reshape(-1, 1, 2)
         dst = cv2.perspectiveTransform(pts, M)
@@ -213,7 +199,6 @@ def get_key_being_pressed(x, y, frame, frameCount):
     ret = False
     for key, value in keyRealCoords.items():
 
-        # print(value)
         if key == "BORDER":
             break
 
