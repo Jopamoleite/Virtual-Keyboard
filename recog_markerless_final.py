@@ -52,7 +52,7 @@ def get_key_being_pressed(x, y, frame, frameCount, keyRealCoords):
             return img2, frameCount, ret
         return frame, frameCount, ""
 
-    frameCount = 0
+    frameCount -= 1
     return frame, frameCount, ""
 
 def draw_key(x, y, frame, key):
@@ -104,8 +104,9 @@ def feature_detection(frame, keyCoords, oldKeyRealCoords):
         for key, value in keyCoords.items():
             pts = np.float32(np.array(value)).reshape(-1, 1, 2)
             dst = cv.perspectiveTransform(pts, M)
-            # img2 = cv.polylines(img2, [np.int32(dst)],
-            # True, 255, 3, cv.LINE_AA)
+            #img2 = cv.polylines(img2, [np.int32(dst)],
+            #    True, 255, 3, cv.LINE_AA)
+            #cv.imshow("board", img2)
             keyRealCoords[key] = np.int32(dst)
 
         return keyRealCoords

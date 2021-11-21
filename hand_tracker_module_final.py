@@ -31,9 +31,9 @@ def calculate_hand_mask(frame, hand_hist):
     back_project = cv2.calcBackProject(
         [frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
 
-    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cv2.filter2D(back_project, -1, disc, back_project)
-    cv2.imshow('back', back_project)
+    #cv2.imshow('back', back_project)
 
     blured = cv2.blur(back_project, (2, 2))
 
@@ -55,7 +55,7 @@ def calculate_hand_mask(frame, hand_hist):
     #cv2.imshow('eroded2', eroded2)
 
     _, mask = cv2.threshold(eroded2, 20, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    cv2.imshow('mask', mask)
+    #cv2.imshow('mask', mask)
 
     return mask
 
@@ -114,7 +114,7 @@ def get_contour_tip(frame, contour):
     cv2.circle(frame, (cx, cy), 2, (0, 0, 0), -1)
 
     hull = cv2.convexHull(contour, returnPoints=False)
-    cv2.drawContours(frame, contour[hull], -1, (0, 255, 255), 3)
+    #cv2.drawContours(frame, contour[hull], -1, (0, 255, 255), 3)
 
     try:
         defects = cv2.convexityDefects(contour, hull)
@@ -172,43 +172,6 @@ def find_fingertips(frame, contours):
     return point_1, point_2
 
 
-def calculate_sampler_mask(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    _, mask = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    contours, _= cv2.findContours(mask, 1, 2)
-
-    max_area = 0
-    max_contour = None
-    for contour in contours:
-        aux_area = cv2.contourArea(contour)
-
-        if max_contour is None or aux_area > max_area:
-            max_contour = contour
-            max_area = aux_area
-
-    sampler_mask = np.zeros(mask.shape, np.uint8)
-    cv2.drawContours(sampler_mask, [max_contour], -1, (255), -1)
-
-    cv2.imshow('aux', sampler_mask)
-
-    return sampler_mask
-
-
-def get_hand_pixels(frame, sampler_mask):
-    masked = cv2.bitwise_and(frame, frame, mask=sampler_mask)
-    gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
-    gray_eq = cv2.equalizeHist(gray)
-    _, hand_mask = cv2.threshold(gray_eq, 235, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    hand_pixels = cv2.bitwise_and(masked, masked, mask=hand_mask)
-
-    cv2.imshow('gray', gray_eq)
-    cv2.imshow('frame', hand_pixels)
-
-    return hand_pixels, hand_mask
-
-
 def hand_sampler(cap):
     hand_pixels = None
     hand_hist = None
@@ -242,7 +205,7 @@ def hand_sampler(cap):
 
 
         if hand_hist is not None:
-            cv2.imshow('handpix', cv2.cvtColor(hand_pixels, cv2.COLOR_HSV2BGR))
+            #cv2.imshow('handpix', cv2.cvtColor(hand_pixels, cv2.COLOR_HSV2BGR))
             contours = calculate_hand_contours(frame, hand_hist)
             cv2.drawContours(frame, contours, -1, (255, 255, 0), 3)
 
