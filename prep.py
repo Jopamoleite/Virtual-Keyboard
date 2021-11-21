@@ -15,10 +15,13 @@ keyCaps = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "BACKSPACE",
 img = cv2.imread('images/keyboardShift.png')
 cv2.imwrite('images/preppedKeyboard.png', img)
 
+# Convert image to grayscale
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+# Use Canny filter to detect edges
 edges = cv2.Canny(gray, 15, 100, apertureSize=3)
 
+# Find key (and other) contours
 contours, _ = cv2.findContours(
     edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 

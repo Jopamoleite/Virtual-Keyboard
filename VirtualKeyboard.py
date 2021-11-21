@@ -10,16 +10,20 @@ from hand_tracker_module_final import hand_sampler, calculate_hand_contours, fin
 URL = "http://192.168.1.242:4747/video"
 MARKER_TYPE = 1  # 0 - Marker Based / 1 - Markerless
 
+# Finger tracking variables
 hand_pixels = None
 hand_hist = None
 hand_sampler_size = 0
 sampler_x1, sampler_x2, sampler_y1, sampler_y2 = 0, 0, 0, 0
 
+# Key press related variables
 database = []
 keyCoords = {}
 frameCount = 0
 frameCount2 = 0
 frameCountDetector = 0
+
+# Default placeholder values for fingers, used for testing
 fingerX1 = 600
 fingerY1 = 200
 fingerX2 = 100
@@ -61,12 +65,14 @@ while(True):
         fingerX2 = finger2[0]
         fingerY2 = finger2[1]
 
+    # Detect key being pressed
     if keyCoords != {} and keyCoords is not None:
         frame, frameCount, key = get_key_being_pressed(
             fingerX1, fingerY1, frame, frameCount, keyCoords)
         frame, frameCount2, key2 = get_key_being_pressed(
             fingerX2, fingerY2, frame, frameCount2, keyCoords)
 
+        # Handle pressed keys and deal with edge cases (SHIFT)
         if not (len(key) == 0 and len(key2) == 0):
             if len(key) == 0 or len(key2) == 0:
                 draw_key(0, 0, frame, key if len(key) > len(key2) else key2)
