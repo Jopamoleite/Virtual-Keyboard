@@ -5,11 +5,9 @@ import numpy as np
 sampler_x1, sampler_x2, sampler_y1, sampler_y2 = 0, 0, 0, 0
 
 
+# Returns a sample of pixels from the input frame
 def sample_hand_pixels(frame, hand_sampler_size):
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    #hsv_frame[:,:,0] = cv2.equalizeHist(hsv_frame[:,:,0])
-    #hsv_frame[:,:,1] = cv2.equalizeHist(hsv_frame[:,:,1])
-    #hsv_frame[:,:,2] = cv2.equalizeHist(hsv_frame[:,:,2])
 
     global sampler_x1, sampler_x2, sampler_y1, sampler_y2
 
@@ -21,27 +19,24 @@ def sample_hand_pixels(frame, hand_sampler_size):
     return region_of_interest
 
 
+# Returns a color histogram in the hsv color space for the given image
 def calculate_hand_histogram(pixels):
     aux_hist = cv2.calcHist([pixels], [0, 1], None, [
                             180, 256], [0, 180, 0, 256])
     return cv2.normalize(aux_hist, aux_hist, 0, 255, cv2.NORM_MINMAX)
 
 
+# Returns a mask corresponding to the color match between the input frame and the hsv color histogram
 def calculate_hand_mask(frame, hand_hist):
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
     back_project = cv2.calcBackProject(
-        [frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
+        [hsv_frame], [0, 1], hand_hist, [0, 180, 0, 256], 1)
 
     disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     cv2.filter2D(back_project, -1, disc, back_project)
-    #cv2.imshow('back', back_project)
 
     blured = cv2.blur(back_project, (2, 2))
-
-    #erode_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    #eroded = cv2.erode(blured, erode_kernel, iterations=2)
-
-    #dilate_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-    #dilated = cv2.dilate(blured, dilate_kernel, iterations=1)
 
     close_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
     closed = cv2.morphologyEx(blured, cv2.MORPH_CLOSE, close_kernel)
@@ -49,22 +44,12 @@ def calculate_hand_mask(frame, hand_hist):
     erode_kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     eroded2 = cv2.erode(closed, erode_kernel2, iterations=1)
 
-    #cv2.imshow('closed', closed)
-    #cv2.imshow('dilated', dilated)
-    #cv2.imshow('eroded', eroded)
-    #cv2.imshow('eroded2', eroded2)
-
     _, mask = cv2.threshold(eroded2, 20, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    #cv2.imshow('mask', mask)
 
     return mask
 
 
-def calculate_mask_contours(mask):
-    contours, _ = cv2.findContours(mask, 1, 2)
-    return contours
-
-
+# Returns the center point of the given contour
 def calculate_center(contour):
     M = cv2.moments(contour)
     cx = int(M['m10']/M['m00'])
@@ -73,6 +58,7 @@ def calculate_center(contour):
     return cx, cy
 
 
+# Returns the defect that's farthest away from a contour's center
 def find_farthest_defect(defects, contour, center):
     if defects is None:
         return None
@@ -104,6 +90,7 @@ def find_farthest_defect(defects, contour, center):
     return farthest_point
 
 
+# Calculates the center and defects of a contour and returns the farthest defects
 def get_contour_tip(frame, contour):
     try:
         cx, cy = calculate_center(contour)
@@ -114,7 +101,6 @@ def get_contour_tip(frame, contour):
     cv2.circle(frame, (cx, cy), 2, (0, 0, 0), -1)
 
     hull = cv2.convexHull(contour, returnPoints=False)
-    #cv2.drawContours(frame, contour[hull], -1, (0, 255, 255), 3)
 
     try:
         defects = cv2.convexityDefects(contour, hull)
@@ -123,17 +109,15 @@ def get_contour_tip(frame, contour):
         return None
 
 
+# Calculates the hand mask given a frame and a color histogram and returns the contours of that mask
 def calculate_hand_contours(frame, hand_hist):
-    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    #hsv_frame[:,:,0] = cv2.equalizeHist(hsv_frame[:,:,0])
-    #hsv_frame[:,:,1] = cv2.equalizeHist(hsv_frame[:,:,1])
-    #hsv_frame[:,:,1] = cv2.equalizeHist(hsv_frame[:,:,2])
+    mask = calculate_hand_mask(frame, hand_hist)
+    contours, _ = cv2.findContours(mask, 1, 2)
 
-    mask = calculate_hand_mask(hsv_frame, hand_hist)
-
-    return calculate_mask_contours(mask)
+    return contours
 
 
+# Finds the two largest contours and returns the points corresponding to the fingertips
 def find_fingertips(frame, contours):
     point_1 = None
     point_2 = None
@@ -172,6 +156,7 @@ def find_fingertips(frame, contours):
     return point_1, point_2
 
 
+# Calibration loop for sampling the color of the hands
 def hand_sampler(cap):
     hand_pixels = None
     hand_hist = None
@@ -185,6 +170,7 @@ def hand_sampler(cap):
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
             break
+        # Sample pixels from the image and calculate the histogram
         if key & 0xFF == ord('s'):
             region_of_interest = sample_hand_pixels(frame, hand_sampler_size)
             if hand_pixels is None:
@@ -192,10 +178,12 @@ def hand_sampler(cap):
             else:
                 hand_pixels = np.concatenate((hand_pixels, region_of_interest), axis=1)
             hand_hist = calculate_hand_histogram(hand_pixels)
+        # Clear the sample pixels and reset the histogram
         if key & 0xFF == ord('c'):
             hand_pixels = None
             hand_hist = None
 
+        # Set the sampler parameters
         if hand_sampler_size == 0:
             hand_sampler_size = int(min(rows, cols) / 20)
             sampler_x1, sampler_y1 = int(
@@ -203,9 +191,8 @@ def hand_sampler(cap):
             sampler_x2, sampler_y2 = sampler_x1 + \
                 hand_sampler_size, sampler_y1 + hand_sampler_size
 
-
+        # Simulate the hand tracking with the current histogram
         if hand_hist is not None:
-            #cv2.imshow('handpix', cv2.cvtColor(hand_pixels, cv2.COLOR_HSV2BGR))
             contours = calculate_hand_contours(frame, hand_hist)
             cv2.drawContours(frame, contours, -1, (255, 255, 0), 3)
 
@@ -224,11 +211,3 @@ def hand_sampler(cap):
     cv2.destroyAllWindows()
 
     return hand_hist
-
-
-def test():
-    cap = cv2.VideoCapture(1)
-
-    hand_sampler(cap)
-
-    cap.release()
